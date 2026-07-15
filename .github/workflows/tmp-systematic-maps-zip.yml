@@ -1,7 +1,7 @@
 name: Temporary Systematic Maps ZIP
 
 on:
-  push:
+  pull_request:
     branches:
       - tmp-systematic-maps-zip
   workflow_dispatch:
