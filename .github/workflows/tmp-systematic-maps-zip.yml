@@ -1,0 +1,59 @@
+name: Temporary Systematic Maps ZIP
+
+on:
+  push:
+    branches:
+      - tmp-systematic-maps-zip
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download the four readings
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p bundle
+          UA='Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/126 Safari/537.36'
+
+          curl -fL --retry 4 --retry-all-errors -A "$UA" \
+            'https://onlinelibrary.wiley.com/doi/pdf/10.1111/j.1471-1842.2009.00848.x' \
+            -o 'bundle/Grant and Booth - 2009 - A typology of reviews an analysis of 14 review types and associated methodologies.pdf'
+
+          curl -fL --retry 4 --retry-all-errors -A "$UA" \
+            'https://link.springer.com/content/pdf/10.1186/2046-4053-1-28.pdf' \
+            -o 'bundle/Gough et al. - 2012 - Clarifying differences between review designs and methods.pdf'
+
+          curl -fL --retry 4 --retry-all-errors -A "$UA" \
+            'https://link.springer.com/content/pdf/10.1186/s13750-016-0059-6.pdf' \
+            -o 'bundle/James et al. - 2016 - A methodology for systematic mapping in environmental sciences.pdf'
+
+          curl -fL --retry 4 --retry-all-errors -A "$UA" \
+            'https://link.springer.com/content/pdf/10.1186/s13750-018-0121-7.pdf' \
+            -o 'bundle/Haddaway et al. - 2018 - ROSES RepOrting standards for Systematic Evidence Syntheses pro forma flow-diagram and descriptive summary of the plan and conduct of environmental systematic reviews and systematic maps.pdf'
+
+      - name: Validate PDFs and create archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(find bundle -maxdepth 1 -type f -name '*.pdf' | wc -l)" -eq 4
+          for f in bundle/*.pdf; do
+            test "$(head -c 4 "$f")" = '%PDF'
+            test "$(stat -c%s "$f")" -gt 100000
+            file "$f"
+          done
+          zip -j -9 'Systematic Maps (2026-07-15 V1).zip' bundle/*.pdf
+          unzip -t 'Systematic Maps (2026-07-15 V1).zip'
+          unzip -l 'Systematic Maps (2026-07-15 V1).zip'
+
+      - name: Upload archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: Systematic Maps (2026-07-15 V1)
+          path: Systematic Maps (2026-07-15 V1).zip
+          if-no-files-found: error
+          retention-days: 1
